@@ -1,16 +1,16 @@
-# 🔐 Advanced XSS Techniques
+# Advanced XSS Techniques
 
 > A comprehensive research repository on advanced Cross-Site Scripting techniques, evasion methods, exploit chains, and defenses. For educational and authorized security research only.
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This repository is intended **strictly for educational purposes and authorized penetration testing**. Do not use any techniques described here against systems you do not own or have explicit written permission to test. Unauthorized use may violate laws including the Computer Fraud and Abuse Act (CFAA), the Computer Misuse Act (CMA), and similar legislation worldwide.
 
 ---
 
-## 📚 Table of Contents
+## Table of Contents
 
 - [How to Use This Repo](#how-to-use-this-repo)
 - [Repository Structure](#repository-structure)
