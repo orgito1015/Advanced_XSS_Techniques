@@ -1,4 +1,4 @@
-![Alt text](Advanced XSS Techniques.jpg)
+![Alt text](AdvancedXSSTechniques.jpg)
 
 
 # Advanced XSS Techniques
