@@ -1,3 +1,6 @@
+![Alt text](Advanced XSS Techniques.jpg)
+
+
 # Advanced XSS Techniques
 
 > A comprehensive research repository on advanced Cross-Site Scripting techniques, evasion methods, exploit chains, and defenses. For educational and authorized security research only.
